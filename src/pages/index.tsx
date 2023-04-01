@@ -1,6 +1,14 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import { createContext, useState, useContext, type FC, type FormEvent } from "react";
+import {
+  createContext,
+  useState,
+  useContext,
+  type FC,
+  type FormEvent,
+  useRef,
+  useEffect,
+} from "react";
 import { api } from "~/utils/api";
 
 type MessageType = {
@@ -14,7 +22,13 @@ const MessagesContext = createContext<Array<MessageType>>(
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const SetMessagesContext = createContext((_messages: Array<MessageType>) => {});
 
-const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({...props}) => {
+const ProcessingContext = createContext<boolean>(false);
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+const SetProcessingContext = createContext((_processing: boolean) => {});
+
+const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({
+  ...props
+}) => {
   const [message, setMessage] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
 
@@ -22,6 +36,8 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({...props
   const setMessages = useContext(SetMessagesContext);
 
   const sendChatMessage = api.chat.example.useMutation();
+
+  const timerRef = useRef< NodeJS.Timeout|null>(null);
 
   const maxLength = 200;
   const minLength = 10;
@@ -53,15 +69,21 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({...props
   const handleInput = (e: FormEvent<HTMLTextAreaElement>) => {
     setMessage(e.currentTarget.value);
     setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-    }, 1500);
-  };
 
+    if (timerRef.current)
+    clearTimeout(timerRef.current);
+
+    timerRef.current = setTimeout(() => {
+        setIsTyping(false);
+      }, 1500);
+    };
+    
   return (
-    <form className={`w-full flex flex-col ${props.className ?? ""}`}>
-      <span className="flex-none text-sm">{isTyping ? "Typing..." : ""}</span>
-      <div className="w-full flex-1 flex flex-row rounded-xl bg-neutral-100 p-3 text-neutral-600 shadow-sm">
+    <form className={`flex w-full flex-col ${props.className ?? ""}`}>
+      <span className="h-6 flex-none text-sm">
+        {isTyping ? "Typing..." : ""}
+      </span>
+      <div className="flex w-full flex-1 flex-row rounded-xl bg-neutral-100 p-3 text-neutral-600 shadow-sm">
         <textarea
           rows={
             message.split(/\r|\n/).length > 3
@@ -80,7 +102,10 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({...props
         />
 
         <div className="flex h-full flex-col items-end justify-between">
-          <button className="rounded-md bg-blue-500 text-white text-sm px-3 py-1.5 disabled:cursor-not-allowed disabled:bg-blue-300" disabled={ message.length > maxLength ||  message.length < minLength}>
+          <button
+            className="rounded-md bg-blue-500 px-3 py-1.5 text-sm text-white disabled:cursor-not-allowed disabled:bg-blue-300"
+            disabled={message.length > maxLength || message.length < minLength}
+          >
             Send
           </button>
           <span
@@ -97,15 +122,28 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({...props
   );
 };
 
-const ChatMessages: FC<React.HTMLAttributes<HTMLFormElement>> = ({...props}) => {
+const ChatMessages: FC<React.HTMLAttributes<HTMLFormElement>> = ({
+  ...props
+}) => {
   const messages = useContext(MessagesContext);
+  const scrollTargetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollTargetRef.current) {
+      scrollTargetRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "nearest",
+      });
+    }
+  });
 
   return (
     <div className={`flex flex-col gap-y-3 ${props.className ?? ""}`}>
       {messages.map((message, index) => (
         <div
           key={index}
-          className={`rounded-2xl px-6 py-4 shadow-sm text-sm md:text-base ${
+          className={`rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base ${
             message.role === "assistant"
               ? "mr-32 bg-neutral-200 text-neutral-900"
               : "ml-32 bg-blue-500 text-white"
@@ -114,6 +152,7 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLFormElement>> = ({...props}) => 
           {message.content}
         </div>
       ))}
+      <div ref={scrollTargetRef}></div>
     </div>
   );
 };
@@ -125,6 +164,8 @@ const Home: NextPage = () => {
       role: "assistant",
     },
   ]);
+
+  const [processing, setProcessing] = useState<boolean>(false);
 
   return (
     <>
@@ -143,12 +184,16 @@ const Home: NextPage = () => {
             Tailwindcss, tRPC, Typescipt and the OpenAI chat completion AI.
           </p>
         </div>
-        <MessagesContext.Provider value={messages}>
-          <SetMessagesContext.Provider value={setMessages}>
-            <ChatMessages className="flex-1 overflow-y-auto my-5" />
-            <PushChatMessageForm className="flex-none"/>
-          </SetMessagesContext.Provider>
-        </MessagesContext.Provider>
+        <ProcessingContext.Provider value={processing}>
+          <SetProcessingContext.Provider value={setProcessing}>
+            <MessagesContext.Provider value={messages}>
+              <SetMessagesContext.Provider value={setMessages}>
+                <ChatMessages className="mt-5 flex-1 overflow-y-auto" />
+                <PushChatMessageForm className="flex-none" />
+              </SetMessagesContext.Provider>
+            </MessagesContext.Provider>
+          </SetProcessingContext.Provider>
+        </ProcessingContext.Provider>
       </main>
     </>
   );
