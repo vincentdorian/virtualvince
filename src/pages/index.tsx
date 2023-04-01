@@ -79,7 +79,12 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({
     };
     
   return (
-    <form className={`flex w-full flex-col ${props.className ?? ""}`}>
+    <form className={`flex w-full flex-col ${props.className ?? ""}`} onSubmit={
+      (e) => {
+        e.preventDefault();
+        void handleSubmit();
+      }
+    }>
       <span className="h-6 flex-none text-sm">
         {isTyping ? "Typing..." : ""}
       </span>
