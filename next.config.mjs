@@ -20,6 +20,7 @@ const config = {
   },
   images: {
     domains: ["avatars.githubusercontent.com"],
+    minimumCacheTTL: 60,
   },
 };
 export default config;

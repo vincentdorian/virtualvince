@@ -41,7 +41,8 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
 
   const sendChatMessage = api.chat.example.useMutation();
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isProcessingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const maxLength = 200;
   const minLength = 10;
@@ -63,7 +64,12 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
 
     setMessage("");
     setIsTyping(false);
-    setIsProcessing(true);
+    
+    if (isProcessingTimerRef.current) clearTimeout(isProcessingTimerRef.current);
+
+    isProcessingTimerRef.current = setTimeout(() => {
+      setIsProcessing(true);
+    }, 750);
 
     await sendChatMessage
       .mutateAsync({
@@ -83,9 +89,9 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
     setMessage(e.currentTarget.value);
     setIsTyping(true);
 
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (isTypingTimerRef.current) clearTimeout(isTypingTimerRef.current);
 
-    timerRef.current = setTimeout(() => {
+    isTypingTimerRef.current = setTimeout(() => {
       setIsTyping(false);
     }, 1500);
   };
@@ -162,13 +168,16 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
       {messages.map((message, index) => (
         <li key={index} className="flex w-full flex-row items-end gap-x-1">
           {message.role === "assistant" && (
-            <Image
-              className="h-10 w-10 flex-none rounded-full bg-neutral-200"
-              src={process.env.PFP_URL ?? ""}
-              alt="Assistant"
-              width={100}
-              height={100}
-            />
+            <div className="object-fit relative block h-10 w-10 flex-none overflow-hidden rounded-full bg-neutral-200">
+              <Image
+                src={
+                  "https://avatars.githubusercontent.com/u/60883844?s=400&u=66e9c48042a0b2f25cfc3704772659c7de39af7e&v=4"
+                }
+                alt="Assistant"
+                fill
+                priority
+              />
+            </div>
           )}
           <div
             className={`flex-1 break-all rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base ${
@@ -183,13 +192,16 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
       ))}
       {processing && (
         <li className="flex w-full flex-row items-end gap-x-1">
-          <Image
-            className="h-10 w-10 flex-none rounded-full bg-neutral-200"
-            src={process.env.PFP_URL ?? ""}
-            alt="Assistant"
-            width={100}
-            height={100}
-          />
+          <div className="object-fit relative block h-10 w-10 flex-none overflow-hidden rounded-full bg-neutral-200">
+            <Image
+              src={
+                "https://avatars.githubusercontent.com/u/60883844?s=400&u=66e9c48042a0b2f25cfc3704772659c7de39af7e&v=4"
+              }
+              alt="Assistant"
+              fill
+              priority
+            />
+          </div>
           <div
             className={`mr-32 w-fit rounded-2xl bg-neutral-200 px-6 py-4 text-sm text-neutral-900 shadow-sm md:text-base`}
           >
