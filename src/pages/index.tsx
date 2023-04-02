@@ -41,7 +41,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
 
   const sendChatMessage = api.chat.example.useMutation();
 
-  const timerRef = useRef< NodeJS.Timeout|null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const maxLength = 200;
   const minLength = 10;
@@ -54,7 +54,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
       if (message.length < minLength) {
         alert("Message is too short");
       }
-  
+
       if (message.length > maxLength) {
         alert("Message is too long");
       }
@@ -83,21 +83,21 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
     setMessage(e.currentTarget.value);
     setIsTyping(true);
 
-    if (timerRef.current)
-    clearTimeout(timerRef.current);
+    if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(() => {
-        setIsTyping(false);
-      }, 1500);
-    };
-    
+      setIsTyping(false);
+    }, 1500);
+  };
+
   return (
-    <form className={`flex w-full flex-col ${props.className ?? ""}`} onSubmit={
-      (e) => {
+    <form
+      className={`flex w-full flex-col ${props.className ?? ""}`}
+      onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit();
-      }
-    }>
+      }}
+    >
       <span className="h-6 flex-none text-sm">
         {isTyping ? "Typing..." : ""}
       </span>
@@ -160,36 +160,47 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
   return (
     <ul className={`flex flex-col gap-y-3 ${props.className ?? ""}`}>
       {messages.map((message, index) => (
-        <li
-          key={index}
-          className=""
-        >
-          {
-            message.role === "assistant" && process.env.PFP_URL && (
-              <img className={"w-10 h-10 flex-shrink-0"} src={process.env.PFP_URL} />
-            )
-          }
-          <div className={`rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base break-all ${
-            message.role === "assistant"
-              ? "mr-32 bg-neutral-200 text-neutral-900"
-              : "ml-32 bg-blue-500 text-white"
-          }`}>
+        <li key={index} className="flex w-full flex-row items-end gap-x-1">
+          {message.role === "assistant" && (
+            <Image
+              className="h-10 w-10 flex-none rounded-full bg-neutral-200"
+              src={process.env.PFP_URL ?? ""}
+              alt="Assistant"
+              width={100}
+              height={100}
+            />
+          )}
+          <div
+            className={`flex-1 break-all rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base ${
+              message.role === "assistant"
+                ? "mr-32 bg-neutral-200 text-neutral-900"
+                : "ml-32 bg-blue-500 text-white"
+            }`}
+          >
             {message.content}
           </div>
         </li>
-        
-        ))}
-        { processing && (
-          <li
-            className={`rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base mr-32 bg-neutral-200 text-neutral-900 w-fit`}
+      ))}
+      {processing && (
+        <li className="flex w-full flex-row items-end gap-x-1">
+          <Image
+            className="h-10 w-10 flex-none rounded-full bg-neutral-200"
+            src={process.env.PFP_URL ?? ""}
+            alt="Assistant"
+            width={100}
+            height={100}
+          />
+          <div
+            className={`mr-32 w-fit rounded-2xl bg-neutral-200 px-6 py-4 text-sm text-neutral-900 shadow-sm md:text-base`}
           >
-            <div className="animate-pulse flex gap-x-1">
-              <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
-              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-              <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+            <div className="flex animate-pulse gap-x-1">
+              <div className="h-2 w-2 rounded-full bg-gray-500"></div>
+              <div className="h-2 w-2 rounded-full bg-gray-400"></div>
+              <div className="h-2 w-2 rounded-full bg-gray-300"></div>
             </div>
-          </li>
-        )}
+          </div>
+        </li>
+      )}
       <div ref={scrollTargetRef}></div>
     </ul>
   );
