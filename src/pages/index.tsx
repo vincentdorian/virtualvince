@@ -1,5 +1,6 @@
 import { type NextPage } from "next";
 import Head from "next/head";
+import Image from "next/image";
 import {
   createContext,
   useState,
@@ -26,7 +27,7 @@ const ProcessingContext = createContext<boolean>(false);
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const SetProcessingContext = createContext((_processing: boolean) => {});
 
-const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({
+const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
   ...props
 }) => {
   const [message, setMessage] = useState<string>("");
@@ -34,6 +35,9 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({
 
   const messages = useContext(MessagesContext);
   const setMessages = useContext(SetMessagesContext);
+
+  const isProcessing = useContext(ProcessingContext);
+  const setIsProcessing = useContext(SetProcessingContext);
 
   const sendChatMessage = api.chat.example.useMutation();
 
@@ -43,15 +47,23 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({
   const minLength = 10;
 
   const handleSubmit = async () => {
-    if (message.length > minLength) {
+    if (message.length > minLength && message.length < maxLength) {
       messages.push({ content: message, role: "user" });
       setMessages([...messages]);
     } else {
+      if (message.length < minLength) {
+        alert("Message is too short");
+      }
+  
+      if (message.length > maxLength) {
+        alert("Message is too long");
+      }
       return;
     }
 
     setMessage("");
     setIsTyping(false);
+    setIsProcessing(true);
 
     await sendChatMessage
       .mutateAsync({
@@ -62,6 +74,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({
         if (response) {
           messages.push(response);
           setMessages([...messages]);
+          setIsProcessing(false);
         }
       });
   };
@@ -127,11 +140,12 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLDivElement>> = ({
   );
 };
 
-const ChatMessages: FC<React.HTMLAttributes<HTMLFormElement>> = ({
+const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
   ...props
 }) => {
   const messages = useContext(MessagesContext);
   const scrollTargetRef = useRef<HTMLDivElement>(null);
+  const processing = useContext(ProcessingContext);
 
   useEffect(() => {
     if (scrollTargetRef.current) {
@@ -144,21 +158,40 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLFormElement>> = ({
   });
 
   return (
-    <div className={`flex flex-col gap-y-3 ${props.className ?? ""}`}>
+    <ul className={`flex flex-col gap-y-3 ${props.className ?? ""}`}>
       {messages.map((message, index) => (
-        <div
+        <li
           key={index}
-          className={`rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base ${
+          className=""
+        >
+          {
+            message.role === "assistant" && process.env.PFP_URL && (
+              <img className={"w-10 h-10 flex-shrink-0"} src={process.env.PFP_URL} />
+            )
+          }
+          <div className={`rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base break-all ${
             message.role === "assistant"
               ? "mr-32 bg-neutral-200 text-neutral-900"
               : "ml-32 bg-blue-500 text-white"
-          }`}
-        >
-          {message.content}
-        </div>
-      ))}
+          }`}>
+            {message.content}
+          </div>
+        </li>
+        
+        ))}
+        { processing && (
+          <li
+            className={`rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base mr-32 bg-neutral-200 text-neutral-900 w-fit`}
+          >
+            <div className="animate-pulse flex gap-x-1">
+              <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
+              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+              <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+            </div>
+          </li>
+        )}
       <div ref={scrollTargetRef}></div>
-    </div>
+    </ul>
   );
 };
 

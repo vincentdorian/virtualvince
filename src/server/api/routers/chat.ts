@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Configuration, OpenAIApi } from "openai";
+import type { ChatCompletionResponseMessage } from "openai";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
@@ -13,12 +14,12 @@ export const chatRouter = createTRPCRouter({
   example: publicProcedure
     .input(
       z.object({
-        role: z.enum(["user"]),
+        role: z.string(),
         content: z.string(),
       })
     )
     .mutation(async ({ input }) => {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       const { content, role } = input;
 
