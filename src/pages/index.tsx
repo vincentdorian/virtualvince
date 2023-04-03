@@ -265,7 +265,7 @@ const Home: NextPage = () => {
           <p className="text-sm text-neutral-800 sm:text-base">
             This is VirtualVince, a simple chat bot that you can talk to find
             out a few things about me and what I do. It is built with NextJS,
-            Tailwindcss, tRPC, Typescipt and the OpenAI chat completion AI.
+            Tailwindcss, tRPC, Typescript and the OpenAI chat completion AI.
           </p>
         </div>
         <ProcessingContext.Provider value={processing}>
@@ -275,7 +275,7 @@ const Home: NextPage = () => {
                 <SetTokenCountContext.Provider value={setTokenCount}>
                   <TokenCountContext.Provider value={tokenCount}>
                     <ChatMessages className="mt-5 flex-1 overflow-y-auto" />
-                    {tokenCount > 0 && (
+                    {tokenCount < 500 && (
                       <PushChatMessageForm className="flex-none" />
                     )}
                   </TokenCountContext.Provider>
