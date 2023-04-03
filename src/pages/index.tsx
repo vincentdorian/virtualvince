@@ -28,6 +28,10 @@ const ProcessingContext = createContext<boolean>(false);
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const SetProcessingContext = createContext((_processing: boolean) => {});
 
+const TokenCountContext = createContext<number>(0);
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+const SetTokenCountContext = createContext((_tokenCount: number) => {});
+
 const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
   ...props
 }) => {
@@ -39,6 +43,9 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
 
   const isProcessing = useContext(ProcessingContext);
   const setIsProcessing = useContext(SetProcessingContext);
+
+  const tokenCount = useContext(TokenCountContext);
+  const setTokenCount = useContext(SetTokenCountContext);
 
   const sendChatMessage = api.chat.send.useMutation();
 
@@ -85,6 +92,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
       .then((response) => {
         if (response) {
           messagesProxy.push(response.message as MessageType);
+          setTokenCount(response.total_tokens as number);
           setMessages([...messagesProxy]);
           setIsProcessing(false);
         }
@@ -102,6 +110,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
     }, 1500);
   };
 
+  if(tokenCount < 500) {
   return (
     <form
       className={`flex w-full flex-col ${props.className ?? ""}`}
@@ -113,7 +122,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
       <span className="h-6 flex-none text-sm">
         {isTyping ? "Typing..." : ""}
       </span>
-      <div className="flex w-full flex-1 flex-row rounded-xl bg-neutral-100 p-3 text-neutral-600 shadow-sm">
+      <div className="flex w-full flex-1 flex-row rounded-xl bg-neutral-100 p-3 text-neutral-600 shadow-sm gap-x-2">
         <textarea
           rows={
             message.split(/\r|\n/).length > 3
@@ -149,7 +158,12 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
         </div>
       </div>
     </form>
-  );
+  )} else {
+    return (
+      <div className="flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold text-center">Thank you for testing Virtual Vince.</span>
+      </div>
+    )}
 };
 
 const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
@@ -172,7 +186,7 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
   return (
     <ul className={`flex flex-col gap-y-3 ${props.className ?? ""}`}>
       {messages.map((message, index) => (
-        <li key={index} className="flex w-full flex-row items-end gap-x-1">
+        <li key={index} className="flex w-full flex-row items-end gap-x-2">
           {message.role === "assistant" && (
             <div className="object-fit relative block h-10 w-10 flex-none overflow-hidden rounded-full bg-neutral-200">
               <Image
@@ -188,8 +202,8 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
           <div
             className={`prose flex-1 break-words rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base ${
               message.role === "assistant"
-                ? "mr-16 sm:mr-32 bg-neutral-200 text-neutral-900"
-                : "ml-16 sm:ml-32 bg-blue-500 text-white"
+                ? "mr-16 bg-neutral-200 text-neutral-900 sm:mr-32"
+                : "ml-16 bg-blue-500 text-white sm:ml-32"
             }`}
           >
             <ReactMarkdown>{message.content}</ReactMarkdown>
@@ -209,7 +223,7 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
             />
           </div>
           <div
-            className={`mr-14 sm:mr-32 w-fit rounded-2xl bg-neutral-200 px-6 py-4 text-sm text-neutral-900 shadow-sm md:text-base`}
+            className={`mr-14 w-fit rounded-2xl bg-neutral-200 px-6 py-4 text-sm text-neutral-900 shadow-sm sm:mr-32 md:text-base`}
           >
             <div className="flex animate-pulse gap-x-1">
               <div className="h-2 w-2 rounded-full bg-gray-500"></div>
@@ -226,7 +240,7 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
 
 const Home: NextPage = () => {
   const [messages, setMessages] = useState<Array<MessageType>>([]);
-
+  const [tokenCount, setTokenCount] = useState<number>(0);
   const [processing, setProcessing] = useState<boolean>(true);
 
   const welcome = api.chat.welcome.useQuery(
@@ -264,8 +278,12 @@ const Home: NextPage = () => {
           <SetProcessingContext.Provider value={setProcessing}>
             <MessagesContext.Provider value={messages}>
               <SetMessagesContext.Provider value={setMessages}>
-                <ChatMessages className="mt-5 flex-1 overflow-y-auto" />
-                <PushChatMessageForm className="flex-none" />
+                <SetTokenCountContext.Provider value={setTokenCount}>
+                  <TokenCountContext.Provider value={tokenCount}>
+                    <ChatMessages className="mt-5 flex-1 overflow-y-auto" />
+                    <PushChatMessageForm className="flex-none" />
+                  </TokenCountContext.Provider>
+                </SetTokenCountContext.Provider>
               </SetMessagesContext.Provider>
             </MessagesContext.Provider>
           </SetProcessingContext.Provider>
