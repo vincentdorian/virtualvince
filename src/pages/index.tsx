@@ -44,7 +44,6 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
   const isProcessing = useContext(ProcessingContext);
   const setIsProcessing = useContext(SetProcessingContext);
 
-  const tokenCount = useContext(TokenCountContext);
   const setTokenCount = useContext(SetTokenCountContext);
 
   const sendChatMessage = api.chat.send.useMutation();
