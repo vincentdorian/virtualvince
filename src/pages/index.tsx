@@ -110,7 +110,6 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
     }, 1500);
   };
 
-  if(tokenCount < 500) {
   return (
     <form
       className={`flex w-full flex-col ${props.className ?? ""}`}
@@ -122,7 +121,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
       <span className="h-6 flex-none text-sm">
         {isTyping ? "Typing..." : ""}
       </span>
-      <div className="flex w-full flex-1 flex-row rounded-xl bg-neutral-100 p-3 text-neutral-600 shadow-sm gap-x-2">
+      <div className="flex w-full flex-1 flex-row gap-x-2 rounded-xl bg-neutral-100 p-3 text-neutral-600 shadow-sm">
         <textarea
           rows={
             message.split(/\r|\n/).length > 3
@@ -158,12 +157,7 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
         </div>
       </div>
     </form>
-  )} else {
-    return (
-      <div className="flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-center">Thank you for testing Virtual Vince.</span>
-      </div>
-    )}
+  );
 };
 
 const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
@@ -281,7 +275,9 @@ const Home: NextPage = () => {
                 <SetTokenCountContext.Provider value={setTokenCount}>
                   <TokenCountContext.Provider value={tokenCount}>
                     <ChatMessages className="mt-5 flex-1 overflow-y-auto" />
-                    <PushChatMessageForm className="flex-none" />
+                    {tokenCount > 0 && (
+                      <PushChatMessageForm className="flex-none" />
+                    )}
                   </TokenCountContext.Provider>
                 </SetTokenCountContext.Provider>
               </SetMessagesContext.Provider>
