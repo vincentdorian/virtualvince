@@ -1,6 +1,7 @@
 import { type NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
+import ReactMarkdown from "react-markdown";
 import {
   createContext,
   useState,
@@ -14,7 +15,7 @@ import { api } from "~/utils/api";
 
 type MessageType = {
   content: string;
-  role: string;
+  role: "user" | "assistant";
 };
 
 const MessagesContext = createContext<Array<MessageType>>(
@@ -39,18 +40,23 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
   const isProcessing = useContext(ProcessingContext);
   const setIsProcessing = useContext(SetProcessingContext);
 
-  const sendChatMessage = api.chat.example.useMutation();
+  const sendChatMessage = api.chat.send.useMutation();
 
   const isTypingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isProcessingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const maxLength = 200;
   const minLength = 10;
 
   const handleSubmit = async () => {
-    if (message.length > minLength && message.length < maxLength) {
-      messages.push({ content: message, role: "user" });
-      setMessages([...messages]);
+    const messagesProxy = messages;
+
+    if (
+      message.length > minLength &&
+      message.length <= maxLength &&
+      !isProcessing
+    ) {
+      messagesProxy.push({ content: message, role: "user" });
+      setMessages([...messagesProxy]);
     } else {
       if (message.length < minLength) {
         alert("Message is too short");
@@ -59,27 +65,27 @@ const PushChatMessageForm: FC<React.HTMLAttributes<HTMLFormElement>> = ({
       if (message.length > maxLength) {
         alert("Message is too long");
       }
+
+      if (isProcessing) {
+        alert("Wait for Virtual Vince to answer");
+      }
+
       return;
     }
 
     setMessage("");
     setIsTyping(false);
-    
-    if (isProcessingTimerRef.current) clearTimeout(isProcessingTimerRef.current);
 
-    isProcessingTimerRef.current = setTimeout(() => {
+    setTimeout(() => {
       setIsProcessing(true);
     }, 750);
 
     await sendChatMessage
-      .mutateAsync({
-        role: "user",
-        content: message,
-      })
+      .mutateAsync({ messages: messagesProxy })
       .then((response) => {
         if (response) {
-          messages.push(response);
-          setMessages([...messages]);
+          messagesProxy.push(response.message as MessageType);
+          setMessages([...messagesProxy]);
           setIsProcessing(false);
         }
       });
@@ -180,13 +186,13 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
             </div>
           )}
           <div
-            className={`flex-1 break-all rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base ${
+            className={`prose flex-1 break-words rounded-2xl px-6 py-4 text-sm shadow-sm md:text-base ${
               message.role === "assistant"
-                ? "mr-32 bg-neutral-200 text-neutral-900"
-                : "ml-32 bg-blue-500 text-white"
+                ? "mr-16 sm:mr-32 bg-neutral-200 text-neutral-900"
+                : "ml-16 sm:ml-32 bg-blue-500 text-white"
             }`}
           >
-            {message.content}
+            <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
         </li>
       ))}
@@ -203,7 +209,7 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
             />
           </div>
           <div
-            className={`mr-32 w-fit rounded-2xl bg-neutral-200 px-6 py-4 text-sm text-neutral-900 shadow-sm md:text-base`}
+            className={`mr-14 sm:mr-32 w-fit rounded-2xl bg-neutral-200 px-6 py-4 text-sm text-neutral-900 shadow-sm md:text-base`}
           >
             <div className="flex animate-pulse gap-x-1">
               <div className="h-2 w-2 rounded-full bg-gray-500"></div>
@@ -219,14 +225,23 @@ const ChatMessages: FC<React.HTMLAttributes<HTMLUListElement>> = ({
 };
 
 const Home: NextPage = () => {
-  const [messages, setMessages] = useState<Array<MessageType>>([
-    {
-      content: "Hi, I am VirtualVince. How can I help you?",
-      role: "assistant",
-    },
-  ]);
+  const [messages, setMessages] = useState<Array<MessageType>>([]);
 
-  const [processing, setProcessing] = useState<boolean>(false);
+  const [processing, setProcessing] = useState<boolean>(true);
+
+  const welcome = api.chat.welcome.useQuery(
+    {},
+    {
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  useEffect(() => {
+    if (welcome.data) {
+      setMessages([welcome.data.message as MessageType]);
+      setProcessing(false);
+    }
+  }, [welcome.data]);
 
   return (
     <>
